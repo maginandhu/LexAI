@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>LexAI — AI Legal Intelligence</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+
+  <!--
+    ══════════════════════════════════════════════
+    CLERK: Replace both placeholders below.
+    Get them from clerk.com → API Keys → HTML tab
+    ══════════════════════════════════════════════
+  -->
+  <script
+    async
+    crossorigin="anonymous"
+    data-clerk-publishable-key="YOUR_PUBLISHABLE_KEY"
+    src="https://YOUR_FRONTEND_API.clerk.accounts.dev/npm/@clerk/clerk-js@latest/dist/clerk.browser.js"
+    type="text/javascript"
+  ></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    [data-theme="dark"] {
+      --bg:#0b0f1a; --bg2:#0f1524; --surface:#131929; --card:#172035; --card2:#1c2840;
+      --border:#243050; --ink:#e8eaf2; --ink2:#b8bdd4; --muted:#6b748f;
+      --navy:#1a2744; --gold:#c9973a; --gold2:#e8b84b;
+      --gold-bg:rgba(201,151,58,0.08); --gold-border:rgba(201,151,58,0.25);
+      --orange:#e8692a; --orange2:#ff8c50;
+      --orange-bg:rgba(232,105,42,0.1); --orange-bdr:rgba(232,105,42,0.3);
+      --red:#c0392b; --green:#1e7a4a; --amber:#b8720a;
+      --shadow:0 4px 24px rgba(0,0,0,0.4);
+      --sidebar-width:64px; --mobile-nav-height:64px;
+    }
+
+    [data-theme="light"] {
+      --bg:#f0f4fa; --bg2:#e4eaf5; --surface:#ffffff; --card:#ffffff; --card2:#f5f8ff;
+      --border:#d0d8ea; --ink:#0d1224; --ink2:#2d3755; --muted:#7080a0;
+      --navy:#1a2744; --gold:#a07828; --gold2:#c89830;
+      --gold-bg:rgba(160,120,40,0.07); --gold-border:rgba(160,120,40,0.25);
+      --orange:#cc5520; --orange2:#e8692a;
+      --orange-bg:rgba(204,85,32,0.08); --orange-bdr:rgba(204,85,32,0.25);
+      --red:#c0392b; --green:#1a6b3a; --amber:#9a6008;
+      --shadow:0 4px 24px rgba(0,0,0,0.1);
+      --sidebar-width:64px; --mobile-nav-height:64px;
+    }
+
+    html, body { height: 100%; }
+    body { background:var(--bg); color:var(--ink); font-family:'Inter',sans-serif; min-height:100vh; transition:background .3s,color .3s; overflow-x:hidden; }
+
+    /* ── SIDEBAR ── */
+    .sidebar-nav {
+      position:fixed; top:0; left:0;
+      width:var(--sidebar-width); height:100vh;
+      background:var(--surface); border-right:1px solid var(--border);
+      display:flex; flex-direction:column; align-items:center;
+      padding:1rem 0; gap:.25rem; z-index:200;
+      transition:width .3s ease; overflow:hidden;
+    }
+    .sidebar-nav:hover { width:200px; }
+    .nav-logo { font-family:'Playfair Display',serif; font-weight:900; font-size:1.3rem; color:var(--gold); padding:.5rem 0; width:100%; text-align:center; border-bottom:1px solid var(--border); margin-bottom:.5rem; white-space:nowrap; }
+    .nav-item { display:flex; align-items:center; gap:.75rem; width:100%; padding:.7rem 1.1rem; cursor:pointer; border-left:3px solid transparent; transition:all .2s; color:var(--muted); font-size:.85rem; font-weight:500; white-space:nowrap; overflow:hidden; }
+    .nav-item:hover, .nav-item.active { background:var(--gold-bg); color:var(--gold); border-left-color:var(--gold); }
+    .nav-icon { font-size:1.1rem; flex-shrink:0; width:20px; text-align:center; }
+    .nav-label { opacity:0; transition:opacity .2s; font-size:.82rem; }
+    .sidebar-nav:hover .nav-label { opacity:1; }
+    .nav-spacer { flex:1; }
+    .nav-divider { width:80%; height:1px; background:var(--border); margin:.5rem 0; }
+
+    /* ── MAIN ── */
+    .main-wrap { margin-left:var(--sidebar-width); min-height:100vh; display:flex; flex-direction:column; }
+
+    /* ── TOPBAR ── */
+    .topbar {
+      position:sticky; top:0; z-index:50;
+      background:rgba(11,15,26,0.92); backdrop-filter:blur(12px);
+      border-bottom:1px solid var(--border);
+      padding:.7rem 1.5rem; display:flex; align-items:center; gap:1rem;
+    }
+    [data-theme="light"] .topbar { background:rgba(240,244,250,0.92); }
+    .topbar-left { display:flex; align-items:center; gap:.4rem; flex-shrink:0; }
+    .nav-arrow { background:var(--card); border:1px solid var(--border); border-radius:6px; width:32px; height:32px; display:flex; align-items:center; justify-content:center; font-size:1rem; color:var(--muted); cursor:pointer; transition:all .2s; }
+    .nav-arrow:hover:not(:disabled) { color:var(--gold); border-color:var(--gold); }
+    .nav-arrow:disabled { opacity:.3; cursor:not-allowed; }
+    .topbar-brand { font-family:'Playfair Display',serif; font-weight:900; font-size:1.2rem; color:var(--gold); cursor:pointer; flex-shrink:0; margin-left:.4rem; }
+    .topbar-search { flex:1; max-width:520px; display:flex; background:var(--card); border:1.5px solid var(--border); border-radius:6px; overflow:hidden; transition:border-color .3s; }
+    .topbar-search:focus-within { border-color:var(--gold); }
+    #topbarInput { flex:1; background:none; border:none; outline:none; padding:.55rem 1rem; font-family:'Inter',sans-serif; font-size:.9rem; color:var(--ink); }
+    #topbarInput::placeholder { color:var(--muted); }
+    .topbar-actions { margin-left:auto; display:flex; align-items:center; gap:.5rem; }
+    .icon-btn { background:var(--card); border:1px solid var(--border); border-radius:6px; padding:.45rem .7rem; cursor:pointer; font-size:.9rem; color:var(--muted); transition:all .2s; display:flex; align-items:center; gap:.4rem; }
+    .icon-btn:hover { color:var(--gold); border-color:var(--gold-border); }
+    .icon-btn.active { color:var(--gold); border-color:var(--gold); background:var(--gold-bg); }
+
+    /* ── USER CHIP ── */
+    .user-chip { display:none; align-items:center; gap:.5rem; padding:.35rem .75rem; border-radius:6px; border:1px solid var(--border); background:var(--card); font-size:.78rem; color:var(--ink2); max-width:200px; }
+    .user-avatar { width:24px; height:24px; border-radius:50%; background:linear-gradient(135deg,#b8872a,var(--gold2)); color:#fff; font-size:.68rem; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+    .user-email { font-size:.75rem; color:var(--ink2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:120px; }
+    .user-signout { color:var(--muted); font-size:.75rem; cursor:pointer; padding:.1rem .25rem; border-radius:3px; flex-shrink:0; transition:color .2s; background:none; border:none; }
+    .user-signout:hover { color:#e74c3c; }
+
+    /* Guest badge */
+    .guest-badge { display:none; align-items:center; gap:.4rem; padding:.3rem .75rem; border-radius:6px; border:1px solid var(--orange-bdr); background:var(--orange-bg); font-size:.72rem; color:var(--orange); font-family:'JetBrains Mono',monospace; cursor:pointer; transition:all .2s; }
+    .guest-badge:hover { background:var(--orange); color:#fff; }
+
+    /* Sign-in button (when guest) */
+    .topbar-signin { display:none; align-items:center; gap:.4rem; padding:.38rem .85rem; border-radius:6px; border:1.5px solid var(--gold-border); background:var(--gold-bg); color:var(--gold); font-size:.78rem; font-family:'JetBrains Mono',monospace; cursor:pointer; transition:all .2s; }
+    .topbar-signin:hover { background:var(--gold); color:#fff; }
+
+    /* ── PAGES ── */
+    .page { display:none; }
+    .page.active { display:block; }
+
+    /* ── HOME ── */
+    #homePage { padding:3rem 2rem 2rem; }
+    .home-hero { max-width:700px; margin:0 auto; text-align:center; padding:2rem 0 3rem; }
+    .hero-badge { display:inline-flex; align-items:center; gap:.5rem; background:var(--gold-bg); border:1px solid var(--gold-border); border-radius:20px; padding:.35rem .9rem; font-size:.72rem; font-family:'JetBrains Mono',monospace; color:var(--gold); letter-spacing:.1em; text-transform:uppercase; margin-bottom:1.5rem; }
+    .hero-title { font-family:'Playfair Display',serif; font-weight:900; font-size:clamp(2.5rem,5vw,4rem); line-height:1.08; letter-spacing:-.02em; color:var(--ink); margin-bottom:1rem; }
+    .hero-title em { font-style:italic; color:var(--gold); }
+    .hero-sub { font-size:1rem; color:var(--muted); font-weight:300; line-height:1.7; margin-bottom:2.5rem; }
+    .home-search-wrap { max-width:600px; margin:0 auto; }
+    .home-search-box { display:flex; background:var(--card); border:2px solid var(--border); border-radius:8px; overflow:hidden; box-shadow:var(--shadow); transition:border-color .3s,box-shadow .3s; margin-bottom:.75rem; }
+    .home-search-box:focus-within { border-color:var(--gold); box-shadow:0 0 0 4px var(--gold-bg),var(--shadow); }
+    #homeInput { flex:1; background:none; border:none; outline:none; padding:1rem 1.25rem; font-family:'Inter',sans-serif; font-size:1rem; color:var(--ink); }
+    #homeInput::placeholder { color:var(--muted); font-weight:300; }
+    .btn-primary { background:linear-gradient(135deg,#b8872a,var(--gold2)); color:#fff; border:none; padding:0 1.75rem; font-family:'Inter',sans-serif; font-weight:600; font-size:.88rem; letter-spacing:.03em; cursor:pointer; transition:opacity .2s,transform .1s; white-space:nowrap; }
+    .btn-primary:hover { opacity:.9; }
+    .btn-primary:active { transform:scale(.98); }
+    .court-filter { display:flex; align-items:center; gap:.5rem; flex-wrap:wrap; justify-content:center; }
+    .filter-lbl { font-size:.72rem; font-family:'JetBrains Mono',monospace; color:var(--muted); margin-right:.25rem; }
+    .chip { padding:.28rem .75rem; border:1px solid var(--border); border-radius:20px; font-size:.75rem; font-family:'JetBrains Mono',monospace; color:var(--muted); cursor:pointer; background:var(--surface); transition:all .2s; user-select:none; }
+    .chip:hover, .chip.active { background:var(--gold); color:#fff; border-color:var(--gold); }
+    .samples-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:.85rem; max-width:1000px; margin:0 auto; }
+    .sample-title { font-size:.68rem; font-family:'JetBrains Mono',monospace; letter-spacing:.15em; text-transform:uppercase; color:var(--muted); text-align:left; max-width:1000px; margin:2.5rem auto .75rem; }
+    .scard { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:1rem; cursor:pointer; transition:border-color .2s,transform .2s,box-shadow .2s; }
+    .scard:hover { border-color:var(--gold); transform:translateY(-2px); box-shadow:0 8px 24px rgba(201,151,58,0.1); }
+    .scard-cat { font-size:.65rem; font-family:'JetBrains Mono',monospace; color:var(--gold); letter-spacing:.1em; text-transform:uppercase; margin-bottom:.4rem; }
+    .scard-q { font-size:.85rem; color:var(--ink2); font-weight:400; line-height:1.5; }
+    .hero-err { display:none; margin-top:.75rem; padding:.65rem 1rem; background:rgba(192,57,43,0.1); border:1px solid rgba(192,57,43,0.3); border-radius:6px; color:#e74c3c; font-size:.82rem; font-family:'JetBrains Mono',monospace; }
+    .hero-err.show { display:block; }
+
+    /* ── ANALYSIS ── */
+    #analysisPage { padding:1.5rem 2rem 3rem; }
+    .analysis-topbar { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:1.75rem; padding-bottom:1.25rem; border-bottom:1px solid var(--border); gap:1rem; flex-wrap:wrap; }
+    .analysis-query { font-family:'Playfair Display',serif; font-style:italic; font-size:1.3rem; color:var(--ink); line-height:1.35; flex:1; }
+    .analysis-actions { display:flex; gap:.5rem; flex-wrap:wrap; flex-shrink:0; }
+    .abtn { display:flex; align-items:center; gap:.4rem; padding:.4rem .85rem; border-radius:6px; border:1px solid var(--border); background:var(--card); font-size:.78rem; font-weight:500; color:var(--ink2); cursor:pointer; transition:all .2s; }
+    .abtn:hover { border-color:var(--gold); color:var(--gold); }
+    .abtn.bookmarked { background:var(--gold-bg); border-color:var(--gold); color:var(--gold); }
+    .badges-row { display:flex; gap:.5rem; flex-wrap:wrap; margin-bottom:1.5rem; }
+    .badge { font-size:.68rem; font-family:'JetBrains Mono',monospace; font-weight:500; padding:.25rem .65rem; border-radius:4px; letter-spacing:.04em; }
+    .badge-cat { background:rgba(37,99,235,0.12); color:#60a5fa; border:1px solid rgba(37,99,235,0.25); }
+    .badge-court { background:var(--gold-bg); color:var(--gold); border:1px solid var(--gold-border); }
+    .cards-grid { display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1rem; }
+    .acard { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:1.35rem 1.5rem; animation:riseIn .45s ease forwards; opacity:0; }
+    .acard.full { grid-column:1/-1; }
+    @keyframes riseIn { from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);} }
+    .acard-label { font-size:.64rem; font-family:'JetBrains Mono',monospace; letter-spacing:.15em; text-transform:uppercase; color:var(--muted); margin-bottom:.85rem; display:flex; align-items:center; gap:.5rem; }
+    .acard-label::after { content:''; flex:1; height:1px; background:var(--border); }
+    .acard-body { font-size:.88rem; color:var(--ink2); line-height:1.75; font-weight:300; }
+    .verdict-wrap { display:flex; flex-direction:column; gap:.75rem; }
+    .verdict-top { display:flex; align-items:flex-end; gap:1rem; }
+    .verdict-pct { font-family:'Playfair Display',serif; font-weight:900; font-size:3.2rem; line-height:1; }
+    .v-high{color:var(--green);} .v-medium{color:var(--amber);} .v-low{color:var(--red);}
+    .verdict-info { display:flex; flex-direction:column; gap:.2rem; }
+    .verdict-tag { font-size:.75rem; font-weight:600; padding:.2rem .55rem; border-radius:4px; display:inline-block; }
+    .vt-high{background:rgba(30,122,74,0.15);color:#34d399;} .vt-medium{background:rgba(184,114,10,0.15);color:#fbbf24;} .vt-low{background:rgba(192,57,43,0.15);color:#f87171;}
+    .verdict-court { font-size:.78rem; color:var(--muted); }
+    .verdict-bar-bg { background:var(--border); border-radius:3px; height:5px; overflow:hidden; }
+    .verdict-bar-fill { height:100%; border-radius:3px; transition:width 1.4s cubic-bezier(.4,0,.2,1); width:0; }
+    .vbf-high{background:linear-gradient(90deg,#1e7a4a,#34d399);} .vbf-medium{background:linear-gradient(90deg,#b8720a,#fbbf24);} .vbf-low{background:linear-gradient(90deg,#c0392b,#f87171);}
+    .verdict-reason { font-size:.85rem; color:var(--ink2); line-height:1.7; font-weight:300; }
+    .ipc-item { margin-bottom:1rem; padding-bottom:1rem; border-bottom:1px solid var(--border); }
+    .ipc-item:last-child { border-bottom:none; margin-bottom:0; padding-bottom:0; }
+    .ipc-top { display:flex; align-items:center; gap:.6rem; margin-bottom:.3rem; }
+    .ipc-tag { background:rgba(37,99,235,0.1); border:1px solid rgba(37,99,235,0.2); color:#60a5fa; font-family:'JetBrains Mono',monospace; font-size:.75rem; padding:.2rem .5rem; border-radius:4px; font-weight:500; }
+    .ipc-title { font-size:.85rem; font-weight:500; color:var(--ink); }
+    .ipc-rel { font-size:.82rem; color:var(--muted); font-weight:300; line-height:1.55; }
+    .steps-list { display:flex; flex-direction:column; gap:.75rem; }
+    .step-row { display:flex; gap:.85rem; align-items:flex-start; }
+    .step-n { width:24px; height:24px; border-radius:50%; background:linear-gradient(135deg,#b8872a,var(--gold2)); color:#fff; font-size:.7rem; font-family:'JetBrains Mono',monospace; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:1px; }
+    .step-t { font-size:.87rem; color:var(--ink2); font-weight:300; line-height:1.6; }
+    .doc-item { display:flex; align-items:center; gap:.7rem; padding:.5rem 0; border-bottom:1px solid var(--border); }
+    .doc-item:last-child { border-bottom:none; }
+    .doc-icon { color:var(--gold); font-size:.8rem; }
+    .doc-name { font-size:.87rem; color:var(--ink2); font-weight:300; }
+
+    /* ── LOADER ── */
+    .loader { display:none; flex-direction:column; align-items:center; justify-content:center; padding:6rem 2rem; gap:1.5rem; }
+    .loader.show { display:flex; }
+    .loader-ring { width:48px; height:48px; border-radius:50%; border:3px solid var(--border); border-top-color:var(--gold); animation:spin .8s linear infinite; }
+    @keyframes spin { to{transform:rotate(360deg);} }
+    .loader-steps { display:flex; flex-direction:column; gap:.35rem; align-items:center; }
+    .lstep { font-size:.78rem; font-family:'JetBrains Mono',monospace; color:var(--muted); opacity:.35; transition:opacity .3s,color .3s; }
+    .lstep.on { opacity:1; color:var(--gold); }
+
+    /* ── HISTORY / BOOKMARKS ── */
+    #historyPage, #bookmarksPage { padding:2rem; }
+    .page-title { font-family:'Playfair Display',serif; font-weight:700; font-size:1.6rem; color:var(--ink); margin-bottom:.4rem; }
+    .page-sub { font-size:.85rem; color:var(--muted); margin-bottom:1.75rem; }
+    .history-list, .bmarks-list { display:flex; flex-direction:column; gap:.6rem; max-width:800px; }
+    .hitem { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:1rem 1.25rem; display:flex; align-items:center; gap:1rem; cursor:pointer; transition:all .2s; }
+    .hitem:hover { border-color:var(--gold); background:var(--card2); }
+    .hitem-icon { font-size:1.2rem; flex-shrink:0; }
+    .hitem-body { flex:1; min-width:0; }
+    .hitem-q { font-size:.9rem; color:var(--ink); font-weight:400; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .hitem-meta { font-size:.75rem; color:var(--muted); margin-top:.2rem; font-family:'JetBrains Mono',monospace; }
+    .hitem-cat { font-size:.7rem; font-family:'JetBrains Mono',monospace; color:var(--gold); background:var(--gold-bg); border:1px solid var(--gold-border); padding:.18rem .5rem; border-radius:4px; flex-shrink:0; }
+    .hitem-del { color:var(--muted); font-size:.9rem; padding:.25rem; border-radius:4px; transition:color .2s; cursor:pointer; flex-shrink:0; }
+    .hitem-del:hover { color:#e74c3c; }
+    .empty-state { text-align:center; padding:4rem; color:var(--muted); }
+    .empty-icon { font-size:3rem; margin-bottom:1rem; opacity:.3; }
+    .empty-signin-btn { margin-top:1rem; display:inline-flex; align-items:center; gap:.5rem; padding:.55rem 1.4rem; border-radius:6px; border:1.5px solid var(--orange-bdr); background:var(--orange-bg); color:var(--orange); font-size:.82rem; font-family:'JetBrains Mono',monospace; cursor:pointer; transition:all .2s; }
+    .empty-signin-btn:hover { background:var(--orange); color:#fff; }
+
+    /* ── COMPARE ── */
+    #comparePage { padding:2rem; }
+    .compare-grid { display:grid; grid-template-columns:1fr 1fr; gap:1.25rem; max-width:1000px; }
+    .compare-slot { background:var(--card); border:2px dashed var(--border); border-radius:10px; padding:1.5rem; min-height:200px; }
+    .slot-label { font-size:.7rem; font-family:'JetBrains Mono',monospace; color:var(--muted); letter-spacing:.1em; text-transform:uppercase; margin-bottom:.75rem; }
+    .slot-input { width:100%; background:var(--bg2); border:1px solid var(--border); border-radius:6px; padding:.7rem; font-family:'Inter',sans-serif; font-size:.88rem; color:var(--ink); resize:vertical; min-height:80px; outline:none; }
+    .slot-input:focus { border-color:var(--gold); }
+    .btn-sec { background:var(--card); border:1px solid var(--border); color:var(--ink2); padding:.5rem 1.2rem; border-radius:6px; font-family:'Inter',sans-serif; font-size:.85rem; font-weight:500; cursor:pointer; transition:all .2s; margin-top:.75rem; }
+    .btn-sec:hover { border-color:var(--gold); color:var(--gold); }
+    .compare-result { grid-column:1/-1; background:var(--card); border:1px solid var(--border); border-radius:10px; padding:1.5rem; display:none; }
+    .compare-result.show { display:block; }
+    .compare-table { width:100%; border-collapse:collapse; font-size:.85rem; }
+    .compare-table th { background:var(--navy); color:var(--gold); padding:.65rem .85rem; text-align:left; font-family:'JetBrains Mono',monospace; font-size:.7rem; letter-spacing:.1em; text-transform:uppercase; }
+    .compare-table td { padding:.65rem .85rem; border-bottom:1px solid var(--border); color:var(--ink2); vertical-align:top; line-height:1.5; }
+    .compare-table tr:last-child td { border-bottom:none; }
+    .compare-table td:first-child { color:var(--muted); font-size:.8rem; font-family:'JetBrains Mono',monospace; }
+
+    /* ── GLOSSARY ── */
+    #glossaryPage { padding:2rem; }
+    .glossary-search { max-width:480px; display:flex; background:var(--card); border:1.5px solid var(--border); border-radius:6px; overflow:hidden; margin-bottom:1.5rem; transition:border-color .3s; }
+    .glossary-search:focus-within { border-color:var(--gold); }
+    #glossaryInput { flex:1; background:none; border:none; outline:none; padding:.65rem 1rem; font-family:'Inter',sans-serif; font-size:.9rem; color:var(--ink); }
+    .glossary-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:.75rem; max-width:1000px; }
+    .gterm { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:1rem 1.1rem; transition:border-color .2s; }
+    .gterm:hover { border-color:var(--gold-border); }
+    .gterm-word { font-weight:600; font-size:.92rem; color:var(--gold); margin-bottom:.35rem; }
+    .gterm-def { font-size:.83rem; color:var(--ink2); line-height:1.6; font-weight:300; }
+
+    /* ── HELPLINES ── */
+    #helplinesPage { padding:2rem; }
+    .helplines-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:.85rem; max-width:900px; }
+    .hline-card { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:1.25rem; transition:border-color .2s,box-shadow .2s; }
+    .hline-card:hover { border-color:var(--gold); box-shadow:0 4px 20px rgba(201,151,58,0.1); }
+    .hline-icon { font-size:1.8rem; margin-bottom:.6rem; }
+    .hline-name { font-weight:600; font-size:.92rem; color:var(--ink); margin-bottom:.25rem; }
+    .hline-num { font-family:'JetBrains Mono',monospace; font-size:1.2rem; color:var(--gold); font-weight:500; margin-bottom:.35rem; }
+    .hline-desc { font-size:.78rem; color:var(--muted); line-height:1.5; }
+    .hline-badge { display:inline-block; margin-top:.5rem; font-size:.65rem; font-family:'JetBrains Mono',monospace; padding:.18rem .5rem; border-radius:3px; background:rgba(30,122,74,0.12); color:#34d399; border:1px solid rgba(30,122,74,0.2); }
+
+    /* ── TOAST ── */
+    .toast { position:fixed; bottom:1.5rem; right:1.5rem; z-index:9999; background:var(--card); border:1px solid var(--gold-border); border-left:3px solid var(--gold); border-radius:8px; padding:.75rem 1.25rem; font-size:.85rem; color:var(--ink2); box-shadow:var(--shadow); transform:translateY(20px); opacity:0; transition:all .35s ease; pointer-events:none; }
+    .toast.show { transform:translateY(0); opacity:1; }
+    .disclaimer { margin-top:1.5rem; padding:.9rem 1.1rem; background:rgba(201,151,58,0.05); border:1px solid var(--gold-border); border-radius:8px; font-size:.76rem; color:var(--muted); font-family:'JetBrains Mono',monospace; line-height:1.6; }
+    .res-error { display:none; padding:1rem; background:rgba(192,57,43,0.08); border:1px solid rgba(192,57,43,0.25); border-radius:8px; color:#f87171; font-family:'JetBrains Mono',monospace; font-size:.85rem; }
+    .res-error.show { display:block; }
+    .lang-bar { display:flex; align-items:center; gap:.4rem; margin-left:auto; }
+    .lang-btn { padding:.28rem .65rem; border:1px solid var(--border); border-radius:20px; font-size:.72rem; font-family:'JetBrains Mono',monospace; color:var(--muted); cursor:pointer; background:var(--surface); transition:all .2s; }
+    .lang-btn:hover, .lang-btn.active { background:var(--gold); color:#fff; border-color:var(--gold); }
+    .lang-flag { font-size:.9rem; }
+
+    /* ── FOOTER ── */
+    .site-footer { border-top:1px solid var(--border); background:var(--surface); padding:2.5rem 2rem 2rem; margin-top:auto; width:100%; }
+    .footer-inner { max-width:1000px; margin:0 auto 1.75rem; display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:2rem; }
+    .footer-brand-name { font-family:'Playfair Display',serif; font-weight:900; font-size:1.4rem; color:var(--gold); margin-bottom:.4rem; }
+    .footer-brand-tag { font-size:.68rem; font-family:'JetBrains Mono',monospace; color:var(--muted); letter-spacing:.12em; text-transform:uppercase; margin-bottom:.85rem; }
+    .footer-desc { font-size:.82rem; color:var(--muted); line-height:1.7; font-weight:300; max-width:240px; }
+    .footer-col-title { font-size:.65rem; font-family:'JetBrains Mono',monospace; letter-spacing:.15em; text-transform:uppercase; color:var(--gold); margin-bottom:.85rem; }
+    .footer-links { display:flex; flex-direction:column; gap:.5rem; }
+    .footer-link { font-size:.82rem; color:var(--muted); cursor:pointer; transition:color .2s; background:none; border:none; text-align:left; padding:0; font-family:'Inter',sans-serif; }
+    .footer-link:hover { color:var(--gold); }
+    .footer-bottom { max-width:1000px; margin:0 auto; padding-top:1.25rem; border-top:1px solid var(--border); display:flex; flex-wrap:wrap; align-items:flex-start; justify-content:space-between; gap:.75rem; }
+    .footer-copy { font-size:.75rem; color:var(--muted); font-family:'JetBrains Mono',monospace; }
+    .footer-disclaimer { font-size:.72rem; color:var(--muted); opacity:.7; max-width:520px; line-height:1.5; text-align:right; }
+    .footer-badges { display:flex; gap:.5rem; flex-wrap:wrap; margin-top:.85rem; }
+    .footer-badge { font-size:.62rem; font-family:'JetBrains Mono',monospace; padding:.2rem .55rem; border-radius:20px; border:1px solid var(--border); color:var(--muted); }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width:768px) {
+      .sidebar-nav { flex-direction:row; width:100%; height:var(--mobile-nav-height); top:auto; bottom:0; left:0; border-right:none; border-top:1px solid var(--border); padding:0; justify-content:space-around; overflow:visible; }
+      .sidebar-nav:hover { width:100%; }
+      .nav-logo, .nav-spacer, .nav-label, .nav-divider { display:none; }
+      .nav-item { flex:1; justify-content:center; border-left:none; border-top:3px solid transparent; padding:0; height:100%; flex-direction:column; gap:0; }
+      .nav-item:hover, .nav-item.active { background:var(--gold-bg); border-top-color:var(--gold); border-left-color:transparent; }
+      .main-wrap { margin-left:0; }
+      #homePage,#analysisPage,#historyPage,#bookmarksPage,#comparePage,#glossaryPage,#helplinesPage { padding:1.5rem 1rem calc(var(--mobile-nav-height) + 1rem); }
+      .site-footer { padding:2rem 1.25rem calc(var(--mobile-nav-height) + 1.5rem); }
+      .topbar { padding:.7rem 1rem; gap:.5rem; }
+      .topbar-search { display:none; }
+      .lang-bar { display:none; }
+      #homeLangBar { display:flex; }
+      .topbar-actions { margin-left:auto; }
+      .cards-grid { grid-template-columns:1fr; }
+      .compare-grid { grid-template-columns:1fr; }
+      .footer-bottom { flex-direction:column; align-items:flex-start; gap:.5rem; }
+      .footer-disclaimer { text-align:left; max-width:100%; }
+      .hero-title { font-size:2.5rem; }
+      .user-email { display:none; }
+    }
+
+    @media (max-width:480px) {
+      .hero-title { font-size:2rem; }
+      .home-search-box { flex-direction:column; }
+      .home-search-box input { border-bottom:1px solid var(--border); padding:.85rem 1rem; }
+      .home-search-box button { padding:.85rem; width:100%; border-radius:0 0 6px 6px; }
+      #homePage,#analysisPage,#historyPage,#bookmarksPage,#comparePage,#glossaryPage,#helplinesPage { padding:1rem .85rem calc(var(--mobile-nav-height) + 1rem); }
+      .nav-icon { font-size:1.3rem; }
+      .footer-inner { grid-template-columns:1fr; gap:1.5rem; }
+      .footer-desc { max-width:100%; }
+      .site-footer { padding:1.75rem 1rem calc(var(--mobile-nav-height) + 1.5rem); }
+    }
+
+    @media print {
+      .sidebar-nav,.topbar,.analysis-actions,.abtn,.icon-btn,.lang-bar,.site-footer { display:none!important; }
+      .main-wrap { margin-left:0!important; }
+      body { background:#fff!important; color:#000!important; }
+      .acard { border:1px solid #ccc!important; background:#fff!important; break-inside:avoid; }
+      .cards-grid { grid-template-columns:1fr!important; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── SIDEBAR ── -->
+  <nav class="sidebar-nav">
+    <div class="nav-logo">LexAI</div>
+    <div class="nav-item active" id="nav-home" onclick="showPage('home')"><span class="nav-icon">⚖</span><span class="nav-label">Home</span></div>
+    <div class="nav-item" id="nav-history" onclick="showPage('history')"><span class="nav-icon">🕐</span><span class="nav-label">History</span></div>
+    <div class="nav-item" id="nav-bookmarks" onclick="showPage('bookmarks')"><span class="nav-icon">🔖</span><span class="nav-label">Bookmarks</span></div>
+    <div class="nav-item" id="nav-compare" onclick="showPage('compare')"><span class="nav-icon">⚡</span><span class="nav-label">Compare</span></div>
+    <div class="nav-divider"></div>
+    <div class="nav-item" id="nav-glossary" onclick="showPage('glossary')"><span class="nav-icon">📖</span><span class="nav-label">Glossary</span></div>
+    <div class="nav-item" id="nav-helplines" onclick="showPage('helplines')"><span class="nav-icon">📞</span><span class="nav-label">Helplines</span></div>
+    <div class="nav-spacer"></div>
+    <div class="nav-item" onclick="toggleTheme()"><span class="nav-icon" id="themeIcon">☀</span><span class="nav-label">Toggle Theme</span></div>
+  </nav>
+
+  <!-- ── MAIN ── -->
+  <div class="main-wrap">
+
+    <!-- TOPBAR -->
+    <div class="topbar" id="topbar">
+      <div class="topbar-left">
+        <button class="nav-arrow" id="btnBack" onclick="goBack()" disabled>&#8592;</button>
+        <button class="nav-arrow" id="btnForward" onclick="goForward()" disabled>&#8594;</button>
+        <span class="topbar-brand" onclick="showPage('home')">LexAI</span>
+      </div>
+      <div class="topbar-search">
+        <input id="topbarInput" type="text" placeholder="New legal query…" onkeydown="if(event.key==='Enter')runFromTopbar()"/>
+        <button class="btn-primary" style="padding:0 1rem;font-size:.82rem;" onclick="runFromTopbar()">Analyse</button>
+      </div>
+      <div class="lang-bar">
+        <button class="lang-btn active" data-lang="en" onclick="setLang('en')"><span class="lang-flag">🇬🇧</span> EN</button>
+        <button class="lang-btn" data-lang="ta" onclick="setLang('ta')"><span class="lang-flag">🇮🇳</span> த</button>
+        <button class="lang-btn" data-lang="hi" onclick="setLang('hi')"><span class="lang-flag">🇮🇳</span> हि</button>
+      </div>
+      <div class="topbar-actions">
+        <!-- Guest badge — shown when not signed in -->
+        <button class="guest-badge" id="guestBadge" onclick="handleAuth()" title="Sign in to save history">
+          👤 Guest
+        </button>
+        <!-- Sign-in button -->
+        <button class="topbar-signin" id="topbarSignin" onclick="handleAuth()">
+          🔐 Sign In
+        </button>
+        <!-- User chip — shown when signed in -->
+        <div class="user-chip" id="userChip">
+          <div class="user-avatar" id="userAvatar">?</div>
+          <span class="user-email" id="userEmail"></span>
+          <button class="user-signout" onclick="signOutUser()" title="Sign out">✕</button>
+        </div>
+        <button class="icon-btn" onclick="bookmarkCurrent()" id="bookmarkBtn" title="Bookmark">🔖</button>
+        <button class="icon-btn" onclick="downloadPDF()" title="Download PDF">📄</button>
+        <button class="icon-btn" onclick="printAnalysis()" title="Print">🖨</button>
+      </div>
+    </div>
+
+    <!-- HOME PAGE -->
+    <div class="page active" id="homePage">
+      <div class="home-hero">
+        <div class="hero-badge">⚖ AI Legal Intelligence · India</div>
+        <h1 class="hero-title">Know your case.<br/><em>Before the courtroom.</em></h1>
+        <p class="hero-sub">Describe your legal situation in plain language. LexAI auto-detects the category, analyses your chances, maps IPC sections, and guides your next steps — instantly and free.</p>
+        <div class="home-search-wrap">
+          <div class="home-search-box">
+            <input id="homeInput" type="text" placeholder="Describe your legal situation in detail…" autocomplete="off"/>
+            <button class="btn-primary" onclick="doAnalysis()" id="homeBtn">Analyse →</button>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;margin-bottom:.6rem;">
+            <div class="court-filter" style="margin-bottom:0;">
+              <span class="filter-lbl" id="courtLabel">Court:</span>
+              <span class="chip active" data-v="All Courts" onclick="selectCourt(this)">All Courts</span>
+              <span class="chip" data-v="Supreme Court" onclick="selectCourt(this)">Supreme Court</span>
+              <span class="chip" data-v="High Court" onclick="selectCourt(this)">High Court</span>
+              <span class="chip" data-v="District Court" onclick="selectCourt(this)">District Court</span>
+            </div>
+            <div class="lang-bar" id="homeLangBar">
+              <span style="font-size:.7rem;font-family:'JetBrains Mono',monospace;color:var(--muted);margin-right:.25rem;">Language:</span>
+              <button class="lang-btn active" data-lang="en" onclick="setLang('en')"><span class="lang-flag">🇬🇧</span> EN</button>
+              <button class="lang-btn" data-lang="ta" onclick="setLang('ta')"><span class="lang-flag">🇮🇳</span> த</button>
+              <button class="lang-btn" data-lang="hi" onclick="setLang('hi')"><span class="lang-flag">🇮🇳</span> हि</button>
+            </div>
+          </div>
+          <div class="hero-err" id="homeErr"></div>
+        </div>
+      </div>
+      <div class="sample-title">Try a sample query →</div>
+      <div class="samples-grid">
+        <div class="scard" onclick="useSample(this)"><div class="scard-cat">Criminal Law</div><div class="scard-q">Arrested for drug possession as a first-time offender. What are my bail rights?</div></div>
+        <div class="scard" onclick="useSample(this)"><div class="scard-cat">Family Law</div><div class="scard-q">Spouse refusing custody of children after separation without court order.</div></div>
+        <div class="scard" onclick="useSample(this)"><div class="scard-cat">Corporate Law</div><div class="scard-q">Business partner transferred company funds to personal account without consent.</div></div>
+        <div class="scard" onclick="useSample(this)"><div class="scard-cat">Civil Law</div><div class="scard-q">Landlord refusing to return security deposit after I legally vacated the property.</div></div>
+        <div class="scard" onclick="useSample(this)"><div class="scard-cat">Intellectual Property</div><div class="scard-q">Someone is selling counterfeit versions of my registered product design online.</div></div>
+        <div class="scard" onclick="useSample(this)"><div class="scard-cat">Constitutional Law</div><div class="scard-q">Government demolished my property without notice or compensation under acquisition.</div></div>
+      </div>
+    </div>
+
+    <!-- ANALYSIS PAGE -->
+    <div class="page" id="analysisPage">
+      <div class="loader" id="loader">
+        <div class="loader-ring"></div>
+        <div class="loader-steps">
+          <div class="lstep" id="ls1">Detecting legal category…</div>
+          <div class="lstep" id="ls2">Evaluating case strength…</div>
+          <div class="lstep" id="ls3">Mapping IPC sections…</div>
+          <div class="lstep" id="ls4">Drafting procedure steps…</div>
+          <div class="lstep" id="ls5">Compiling full analysis…</div>
+        </div>
+      </div>
+      <div id="analysisOut"></div>
+      <div class="res-error" id="resErr"></div>
+    </div>
+
+    <!-- HISTORY PAGE -->
+    <div class="page" id="historyPage">
+      <div class="page-title">Search History</div>
+      <div class="page-sub">Your recent legal queries — click to re-analyse</div>
+      <div class="history-list" id="historyList"></div>
+    </div>
+
+    <!-- BOOKMARKS PAGE -->
+    <div class="page" id="bookmarksPage">
+      <div class="page-title">Saved Cases</div>
+      <div class="page-sub">Analyses you bookmarked for reference</div>
+      <div class="bmarks-list" id="bookmarksList"></div>
+    </div>
+
+    <!-- COMPARE PAGE -->
+    <div class="page" id="comparePage">
+      <div class="page-title">Compare Two Cases</div>
+      <div class="page-sub">Enter two different legal situations and compare them side by side</div>
+      <div class="compare-grid">
+        <div class="compare-slot" id="slot1">
+          <div class="slot-label">Case A</div>
+          <textarea class="slot-input" id="caseA" placeholder="Describe first legal situation…"></textarea>
+          <button class="btn-sec" onclick="runCompare()">⚡ Compare Both</button>
+        </div>
+        <div class="compare-slot" id="slot2">
+          <div class="slot-label">Case B</div>
+          <textarea class="slot-input" id="caseB" placeholder="Describe second legal situation…"></textarea>
+        </div>
+        <div class="compare-result" id="compareResult">
+          <div class="acard-label" style="margin-bottom:1rem;">Comparison Results</div>
+          <div id="compareTable"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GLOSSARY PAGE -->
+    <div class="page" id="glossaryPage">
+      <div class="page-title">Legal Glossary</div>
+      <div class="page-sub">Common legal terms explained in plain language</div>
+      <div class="glossary-search"><input id="glossaryInput" type="text" placeholder="Search a legal term…" oninput="filterGlossary()"/></div>
+      <div class="glossary-grid" id="glossaryGrid"></div>
+    </div>
+
+    <!-- HELPLINES PAGE -->
+    <div class="page" id="helplinesPage">
+      <div class="page-title">Emergency Legal Helplines</div>
+      <div class="page-sub">Free legal aid and emergency numbers across India</div>
+      <div class="helplines-grid" id="helplinesGrid"></div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="site-footer">
+      <div class="footer-inner">
+        <div>
+          <div class="footer-brand-name">LexAI</div>
+          <div class="footer-brand-tag">AI Legal Intelligence · India</div>
+          <div class="footer-desc">AI-powered legal analysis using real NCRB court data. Understand your case before the courtroom — free, instant, in your language.</div>
+          <div class="footer-badges">
+            <span class="footer-badge">🇮🇳 India</span>
+            <span class="footer-badge">⚖ NCRB Data</span>
+            <span class="footer-badge">🔒 Free</span>
+            <span class="footer-badge">🌐 EN · த · हि</span>
+          </div>
+        </div>
+        <div>
+          <div class="footer-col-title">Resources</div>
+          <div class="footer-links">
+            <button class="footer-link" onclick="showPage('glossary')">📖 Legal Glossary</button>
+            <button class="footer-link" onclick="showPage('helplines')">📞 Helplines</button>
+          </div>
+        </div>
+        <div>
+          <div class="footer-col-title">Data Sources</div>
+          <div class="footer-links">
+            <span class="footer-link" style="cursor:default;">📊 NCRB 2019–2023</span>
+            <span class="footer-link" style="cursor:default;">🤖 Groq LLaMA 3.3 70B</span>
+            <span class="footer-link" style="cursor:default;">🏛 IPC / BNS 2023</span>
+            <span class="footer-link" style="cursor:default;">📋 CrPC / BNSS 2023</span>
+          </div>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <div class="footer-copy">© 2026 LexAI · Maginandhu R / Ebinroshan B / Prasanna Kumar K</div>
+        <div class="footer-disclaimer">⚠ Not legal advice. AI-generated analysis for informational purposes only. Always consult a qualified advocate.</div>
+      </div>
+    </footer>
+
+  </div><!-- main-wrap -->
+
+  <div class="toast" id="toast"></div>
+  <script src="lexai.js"></script>
+
+  //clerk api 
+  <script
+  async
+  crossorigin="anonymous"
+  data-clerk-publishable-key="pk_test_ZmFtb3VzLXB1cC0zLmNsZXJrLmFjY291bnRzLmRldiQ"
+  src="https://famous-pup-3.clerk.accounts.dev/npm/@clerk/clerk-js@5/dist/clerk.browser.js"
+  type="text/javascript">
+</script>
+
+</body>
+</html>

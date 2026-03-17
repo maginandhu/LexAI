@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>LexAI — AI Legal Intelligence · India</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,700;1,900&family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,300;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+
+  <!--
+    ══════════════════════════════════════════════
+    CLERK: Replace both placeholders below.
+    Get them from clerk.com → API Keys → HTML tab
+    ══════════════════════════════════════════════
+  -->
+  <script
+    async
+    crossorigin="anonymous"
+    data-clerk-publishable-key="YOUR_PUBLISHABLE_KEY"
+    src="https://YOUR_FRONTEND_API.clerk.accounts.dev/npm/@clerk/clerk-js@latest/dist/clerk.browser.js"
+    type="text/javascript"
+  ></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #08090f;
+      --bg2:      #0d0f1a;
+      --surface:  #111320;
+      --card:     #161929;
+      --border:   #1e2440;
+      --ink:      #eceef8;
+      --ink2:     #9ba3c4;
+      --muted:    #4a5270;
+      --gold:     #d4a244;
+      --gold2:    #f0be60;
+      --gold-dim: rgba(212,162,68,0.12);
+      --gold-bdr: rgba(212,162,68,0.28);
+      --orange:   #e8692a;
+      --orange2:  #ff8c50;
+      --orange-dim: rgba(232,105,42,0.14);
+      --orange-bdr: rgba(232,105,42,0.35);
+      --shadow:   0 8px 40px rgba(0,0,0,0.6);
+    }
+
+    html, body { height: 100%; }
+
+    body {
+      background: var(--bg);
+      color: var(--ink);
+      font-family: 'Crimson Pro', Georgia, serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* ── ANIMATED BACKGROUND ── */
+    .bg-grid {
+      position: fixed; inset: 0; z-index: 0;
+      background-image:
+        linear-gradient(rgba(212,162,68,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(212,162,68,0.03) 1px, transparent 1px);
+      background-size: 60px 60px;
+      animation: gridShift 20s linear infinite;
+    }
+
+    @keyframes gridShift {
+      0%   { background-position: 0 0; }
+      100% { background-position: 60px 60px; }
+    }
+
+    .bg-glow {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background:
+        radial-gradient(ellipse 60% 50% at 20% 40%, rgba(232,105,42,0.06) 0%, transparent 70%),
+        radial-gradient(ellipse 50% 60% at 80% 60%, rgba(212,162,68,0.07) 0%, transparent 70%),
+        radial-gradient(ellipse 40% 40% at 50% 100%, rgba(212,162,68,0.04) 0%, transparent 60%);
+    }
+
+    /* ── TOP NAV ── */
+    .topnav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1.1rem 2.5rem;
+      background: rgba(8,9,15,0.7);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-logo {
+      font-family: 'Playfair Display', serif;
+      font-weight: 900; font-size: 1.5rem;
+      color: var(--gold); letter-spacing: -0.02em;
+      text-decoration: none;
+    }
+
+    .nav-logo span { color: var(--orange); }
+
+    .nav-right { display: flex; align-items: center; gap: 0.75rem; }
+
+    .nav-signin {
+      display: flex; align-items: center; gap: 0.4rem;
+      padding: 0.45rem 1rem; border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--ink2); font-size: 0.82rem;
+      font-family: 'JetBrains Mono', monospace;
+      cursor: pointer; transition: all 0.2s; text-decoration: none;
+    }
+
+    .nav-signin:hover { border-color: var(--gold-bdr); color: var(--gold); }
+
+    /* ── MAIN CONTENT ── */
+    .main {
+      position: relative; z-index: 1;
+      min-height: 100vh;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 7rem 2rem 4rem;
+      text-align: center;
+    }
+
+    /* ── BADGE ── */
+    .badge {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      padding: 0.32rem 0.85rem;
+      border: 1px solid var(--gold-bdr);
+      border-radius: 20px;
+      background: var(--gold-dim);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.68rem; letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--gold);
+      margin-bottom: 2rem;
+      animation: fadeUp 0.6s ease both;
+    }
+
+    .badge-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--gold);
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: 0.5; transform: scale(0.8); }
+    }
+
+    /* ── HEADLINE ── */
+    .headline {
+      font-family: 'Playfair Display', serif;
+      font-weight: 900;
+      font-size: clamp(3rem, 7vw, 5.5rem);
+      line-height: 1.05; letter-spacing: -0.025em;
+      color: var(--ink); margin-bottom: 1.25rem;
+      animation: fadeUp 0.6s 0.1s ease both;
+    }
+
+    .headline em {
+      font-style: italic; color: var(--gold);
+      position: relative;
+    }
+
+    .headline .accent { color: var(--orange); }
+
+    /* ── SUBTEXT ── */
+    .subtext {
+      font-size: clamp(1.05rem, 2vw, 1.25rem);
+      color: var(--ink2); font-weight: 300;
+      line-height: 1.75; max-width: 580px;
+      margin: 0 auto 3rem;
+      animation: fadeUp 0.6s 0.2s ease both;
+    }
+
+    /* ── CTA BUTTONS ── */
+    .cta-group {
+      display: flex; flex-direction: column;
+      align-items: center; gap: 1rem;
+      animation: fadeUp 0.6s 0.3s ease both;
+      margin-bottom: 3.5rem;
+    }
+
+    /* BIG ORANGE GUEST BUTTON */
+    .btn-guest {
+      display: flex; align-items: center; gap: 0.75rem;
+      padding: 1.05rem 2.5rem;
+      background: linear-gradient(135deg, var(--orange) 0%, var(--orange2) 100%);
+      border: none; border-radius: 10px;
+      color: #fff; font-size: 1.1rem; font-weight: 600;
+      font-family: 'Playfair Display', serif;
+      cursor: pointer; letter-spacing: 0.01em;
+      box-shadow: 0 4px 24px rgba(232,105,42,0.4);
+      transition: all 0.25s; text-decoration: none;
+      position: relative; overflow: hidden;
+    }
+
+    .btn-guest::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 60%);
+      opacity: 0; transition: opacity 0.25s;
+    }
+
+    .btn-guest:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(232,105,42,0.55); }
+    .btn-guest:hover::before { opacity: 1; }
+    .btn-guest:active { transform: translateY(0); }
+
+    .btn-guest-icon { font-size: 1.3rem; }
+
+    /* SMALL CLERK LOGIN BUTTON */
+    .btn-clerk {
+      display: flex; align-items: center; gap: 0.5rem;
+      padding: 0.6rem 1.4rem;
+      border: 1.5px solid var(--gold-bdr);
+      border-radius: 8px;
+      background: var(--gold-dim);
+      color: var(--gold); font-size: 0.85rem;
+      font-family: 'JetBrains Mono', monospace;
+      cursor: pointer; transition: all 0.2s;
+      letter-spacing: 0.03em;
+    }
+
+    .btn-clerk:hover {
+      background: var(--gold);
+      color: #fff; border-color: var(--gold);
+      box-shadow: 0 4px 18px rgba(212,162,68,0.35);
+    }
+
+    .btn-clerk-sub {
+      font-size: 0.72rem; color: var(--muted);
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.05em;
+    }
+
+    /* ── DIVIDER ── */
+    .or-divider {
+      display: flex; align-items: center; gap: 0.75rem;
+      color: var(--muted); font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem; letter-spacing: 0.1em;
+    }
+
+    .or-divider::before,
+    .or-divider::after {
+      content: ''; flex: 1; height: 1px;
+      background: var(--border); width: 60px;
+    }
+
+    /* ── FEATURE PILLS ── */
+    .features {
+      display: flex; flex-wrap: wrap; justify-content: center;
+      gap: 0.6rem; max-width: 640px;
+      animation: fadeUp 0.6s 0.4s ease both;
+      margin-bottom: 4rem;
+    }
+
+    .feat {
+      display: flex; align-items: center; gap: 0.4rem;
+      padding: 0.3rem 0.8rem;
+      border: 1px solid var(--border);
+      border-radius: 20px; background: var(--surface);
+      font-size: 0.78rem; color: var(--ink2);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* ── STATS ROW ── */
+    .stats {
+      display: flex; gap: 3rem; flex-wrap: wrap; justify-content: center;
+      animation: fadeUp 0.6s 0.5s ease both;
+      padding-top: 2.5rem;
+      border-top: 1px solid var(--border);
+      max-width: 700px; width: 100%;
+    }
+
+    .stat { text-align: center; }
+
+    .stat-num {
+      font-family: 'Playfair Display', serif;
+      font-weight: 900; font-size: 2rem;
+      color: var(--gold); line-height: 1;
+      margin-bottom: 0.25rem;
+    }
+
+    .stat-lbl {
+      font-size: 0.72rem; color: var(--muted);
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.08em; text-transform: uppercase;
+    }
+
+    /* ── GUEST NOTICE (shown below guest button) ── */
+    .guest-note {
+      font-size: 0.72rem; color: var(--muted);
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.04em;
+    }
+
+    /* ── ANIMATIONS ── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(18px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── LOADING OVERLAY (while Clerk initialises) ── */
+    #clerkLoader {
+      display: none;
+      position: fixed; inset: 0; z-index: 9999;
+      background: rgba(8,9,15,0.85);
+      backdrop-filter: blur(6px);
+      align-items: center; justify-content: center;
+      flex-direction: column; gap: 1rem;
+    }
+
+    #clerkLoader.show { display: flex; }
+
+    .loader-ring {
+      width: 40px; height: 40px; border-radius: 50%;
+      border: 3px solid var(--border);
+      border-top-color: var(--gold);
+      animation: spin 0.8s linear infinite;
+    }
+
+    .loader-txt {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem; color: var(--gold);
+      letter-spacing: 0.1em;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 600px) {
+      .topnav { padding: 0.9rem 1.25rem; }
+      .headline { font-size: 2.6rem; }
+      .stats { gap: 2rem; }
+      .btn-guest { font-size: 1rem; padding: 0.95rem 2rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="bg-grid"></div>
+  <div class="bg-glow"></div>
+
+  <!-- ── TOP NAV ── -->
+  <nav class="topnav">
+    <a href="/" class="nav-logo">Lex<span>AI</span></a>
+    <div class="nav-right">
+      <button class="nav-signin" id="navSignIn" onclick="clerkSignIn()">
+        👤 Sign In
+      </button>
+    </div>
+  </nav>
+
+  <!-- ── MAIN ── -->
+  <main class="main">
+
+    <div class="badge">
+      <div class="badge-dot"></div>
+      AI Legal Intelligence · India · Free
+    </div>
+
+    <h1 class="headline">
+      Know your case.<br/>
+      <em>Before the</em> <span class="accent">courtroom.</span>
+    </h1>
+
+    <p class="subtext">
+      Describe your legal situation in plain language. LexAI analyses your chances,
+      maps IPC sections, and guides your next steps — powered by real NCRB court data.
+    </p>
+
+    <!-- CTA BUTTONS -->
+    <div class="cta-group">
+
+      <!-- BIG ORANGE GUEST BUTTON -->
+      <a class="btn-guest" href="app.html" id="guestBtn">
+        <span class="btn-guest-icon">⚡</span>
+        Continue as Guest
+      </a>
+      <div class="guest-note">No sign-in needed · Analysis works instantly</div>
+
+      <div class="or-divider">or</div>
+
+      <!-- SMALL CLERK LOGIN -->
+      <button class="btn-clerk" id="clerkBtn" onclick="clerkSignIn()">
+        🔐 Sign In to Save History &amp; Bookmarks
+      </button>
+      <div class="btn-clerk-sub">Free · Google or Email · Syncs across devices</div>
+
+    </div>
+
+    <!-- FEATURES -->
+    <div class="features">
+      <div class="feat">⚖ IPC / BNS 2023 Sections</div>
+      <div class="feat">📊 NCRB 2019–2023 Data</div>
+      <div class="feat">🌐 EN · தமிழ் · हिंदी</div>
+      <div class="feat">📄 PDF Export</div>
+      <div class="feat">⚡ Compare Two Cases</div>
+      <div class="feat">📖 Legal Glossary</div>
+      <div class="feat">📞 Emergency Helplines</div>
+      <div class="feat">🔒 Free Forever</div>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats">
+      <div class="stat">
+        <div class="stat-num">8</div>
+        <div class="stat-lbl">Law Categories</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">NCRB</div>
+        <div class="stat-lbl">Real Court Data</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">3</div>
+        <div class="stat-lbl">Languages</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">∞</div>
+        <div class="stat-lbl">Free Queries</div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Clerk Loading overlay -->
+  <div id="clerkLoader">
+    <div class="loader-ring"></div>
+    <div class="loader-txt">Signing you in…</div>
+  </div>
+
+  <script>
+    // ── CLERK INIT ──
+    window.addEventListener('load', async () => {
+      if (!window.Clerk) return;
+
+      await window.Clerk.load();
+
+      // If already signed in → go straight to app
+      if (window.Clerk.user) {
+        goToApp(window.Clerk.user);
+        return;
+      }
+
+      // Listen for sign-in completion
+      window.Clerk.addListener(({ user }) => {
+        if (user) goToApp(user);
+      });
+    });
+
+    function clerkSignIn() {
+      if (!window.Clerk) {
+        // Clerk not configured yet → just go to app as guest
+        window.location.href = 'app.html';
+        return;
+      }
+      window.Clerk.openSignIn({
+        afterSignInUrl: 'app.html',
+        afterSignUpUrl: 'app.html',
+      });
+    }
+
+    function goToApp(user) {
+      // Store user info for app.html to pick up
+      if (user) {
+        sessionStorage.setItem('lexai_user_id',    user.id);
+        sessionStorage.setItem('lexai_user_email', user.primaryEmailAddress?.emailAddress || '');
+        sessionStorage.setItem('lexai_user_name',  user.firstName || '');
+      }
+      window.location.href = 'app.html';
+    }
+  </script>
+//clerk api keys are required to enable the sign-in functionality. Without them, users can still click "Continue as Guest" to access the app without signing in.
+<script
+  async
+  crossorigin="anonymous"
+  data-clerk-publishable-key="pk_test_ZmFtb3VzLXB1cC0zLmNsZXJrLmFjY291bnRzLmRldiQ"
+  src="https://famous-pup-3.clerk.accounts.dev/npm/@clerk/clerk-js@5/dist/clerk.browser.js"
+  type="text/javascript">
+</script>
+
+</body>
+</html>
